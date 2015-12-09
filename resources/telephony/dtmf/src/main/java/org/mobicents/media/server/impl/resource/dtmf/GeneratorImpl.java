@@ -287,17 +287,17 @@ public class GeneratorImpl extends AbstractSource implements DtmfGenerator {
     		data[0]=(byte)oobDigitValue;
     		
     		oobVolume=0-volume;
-    		if(index > (toneDuration / 20))
+    		if(index + 1 > (toneDuration / 20))
     			//with end of event flag
     			data[1]=(byte)(0xBF & oobVolume);	
     		else
     			//without end of event flag
     			data[1]=(byte)(0x3F & oobVolume);
     		
-        	eventDuration=(short)(160*index);
+        	eventDuration=(short)(20*index);
         	data[2]=(byte)((eventDuration>>8) & 0xFF);
         	data[3]=(byte)(eventDuration & 0xFF);
-        	
+
         	frame.setOffset(0);
             frame.setLength(4);
             frame.setTimestamp(getMediaTime());

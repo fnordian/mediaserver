@@ -25,6 +25,11 @@
             <artifactId>components</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.mobicents.media</groupId>
+            <artifactId>spi</artifactId>
+            <version>3.0.2.FINAL</version>
+        </dependency>
 
     </dependencies>
 

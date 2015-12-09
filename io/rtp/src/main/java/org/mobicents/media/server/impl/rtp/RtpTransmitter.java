@@ -34,6 +34,7 @@ import org.mobicents.media.server.impl.rtp.statistics.RtpStatistics;
 import org.mobicents.media.server.impl.srtp.DtlsHandler;
 import org.mobicents.media.server.scheduler.Scheduler;
 import org.mobicents.media.server.spi.memory.Frame;
+import org.mobicents.media.server.spi.dsp.Codec;
 
 /**
  * Transmits RTP packets over a channel.
@@ -173,6 +174,11 @@ public class RtpTransmitter {
 			
 		}
 	}
+
+	private long eventDurationFromData(byte[] data)
+	{
+		return ((data[2] & 0xff) << 8) + (data[3] & 0xff);
+	}
 	
 	public void sendDtmf(Frame frame) {
 		if (!this.dtmfSupported) {
@@ -187,10 +193,14 @@ public class RtpTransmitter {
 		}
 
 		// convert to milliseconds first
-		dtmfTimestamp = frame.getTimestamp() / 1000000L;
+		long eventDuration = eventDurationFromData(frame.getData());
+		System.out.println("ed: " + eventDuration);
+		System.out.println("ts: " + (frame.getTimestamp() / 1000000L));
+		dtmfTimestamp = 1+ (frame.getTimestamp() / 1000000L) - eventDuration;
+
 		// convert to rtp time units
 		dtmfTimestamp = rtpClock.convertToRtpTime(dtmfTimestamp);
-		oobPacket.wrap(false, AVProfile.telephoneEventsID, this.sequenceNumber++, dtmfTimestamp, this.statistics.getSsrc(), frame.getData(), frame.getOffset(), frame.getLength());
+		oobPacket.wrap(dtmfTimestamp == 0, AVProfile.telephoneEventsID, this.sequenceNumber++, dtmfTimestamp, this.statistics.getSsrc(), frame.getData(), frame.getOffset(), frame.getLength());
 
 		frame.recycle();
 		
@@ -210,12 +220,18 @@ public class RtpTransmitter {
 			LOGGER.error(e.getMessage(), e);
 		}
 	}
+
+	private Codec encoder = new org.mobicents.media.server.impl.dsp.audio.g711.alaw.Encoder();
 	
 	public void send(Frame frame) {
 		// discard frame if format is unknown
 		if (frame.getFormat() == null) {
 			frame.recycle();
 			return;
+		}
+
+		if (frame.getFormat().matches(encoder.getSupportedInputFormat())) {
+			frame = encoder.process(frame);
 		}
 
 		// determine current RTP format if it is unknown
@@ -240,7 +256,7 @@ public class RtpTransmitter {
 		timestamp = frame.getTimestamp() / 1000000L;
 		// convert to rtp time units
 		timestamp = rtpClock.convertToRtpTime(timestamp);
-		rtpPacket.wrap(false, currentFormat.getID(), this.sequenceNumber++, timestamp, this.statistics.getSsrc(), frame.getData(), frame.getOffset(), frame.getLength());
+		rtpPacket.wrap(frame.getOffset() == 0, currentFormat.getID(), this.sequenceNumber++, timestamp, this.statistics.getSsrc(), frame.getData(), frame.getOffset(), frame.getLength());
 
 		frame.recycle();
 		try {
