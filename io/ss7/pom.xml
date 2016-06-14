@@ -42,11 +42,6 @@
             <artifactId>stream</artifactId>
             <version>${stream.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.mobicents.media.hardware</groupId>
-            <artifactId>mobicents-dahdi</artifactId>
-            <version>3.0.3-SNAPSHOT</version>
-        </dependency>
     </dependencies>
 
     <build>
